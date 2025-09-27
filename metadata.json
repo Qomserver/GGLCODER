@@ -1,0 +1,5 @@
+{
+  "name": "AI CodeGen Platform",
+  "description": "An AI-powered platform to generate complete codebases for various systems like Python CRMs and web frontends. It features a file tree view, live code streaming, and the ability to continue generation.",
+  "requestFramePermissions": []
+}
