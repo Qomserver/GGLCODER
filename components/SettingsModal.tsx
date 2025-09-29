@@ -10,6 +10,29 @@ interface SettingsModalProps {
     providerApiKeys: Record<string, string>;
 }
 
+const providerModels: Record<ApiSettings['provider'], Array<{ value: string; label: string; group: string }>> = {
+    Google: [
+        { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', group: 'Google' },
+    ],
+    AvalAI: [
+        { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', group: 'Google Gemini' },
+    ],
+    GapGPT: [
+        { value: 'gpt-4o', label: 'GPT-4o', group: 'OpenAI' },
+        { value: 'gpt-4-turbo', label: 'GPT-4 Turbo', group: 'OpenAI' },
+        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', group: 'OpenAI' },
+    ],
+    TalkBot: [
+        { value: 'gpt-4o', label: 'GPT-4o', group: 'OpenAI' },
+        { value: 'gpt-4-turbo', label: 'GPT-4 Turbo', group: 'OpenAI' },
+        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', group: 'OpenAI' },
+        { value: 'Grok/grok-1.5-claude-3.5', label: 'Grok 1.5 Claude 3.5', group: 'Other Advanced Models' },
+        { value: 'Deepseek/deepseek-coder', label: 'Deepseek Coder', group: 'Other Advanced Models' },
+        { value: 'Llama/llama-3-70b', label: 'Llama 3 70B', group: 'Other Advanced Models' },
+        { value: 'Qwen/qwen-2-72b-instruct', label: 'Qwen 2 72B Instruct', group: 'Other Advanced Models' },
+    ],
+};
+
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSave, currentSettings, providerApiKeys }) => {
     const [settings, setSettings] = useState<ApiSettings>(currentSettings);
 
@@ -27,12 +50,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSave, 
 
     const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newProvider = e.target.value as ApiSettings['provider'];
+        const newModels = providerModels[newProvider];
         setSettings(prev => ({
             ...prev,
             provider: newProvider,
             apiKey: providerApiKeys[newProvider] || '',
+            model: newModels.length > 0 ? newModels[0].value : '',
         }));
     };
+    
+    const availableModels = providerModels[settings.provider] || [];
+    const groupedModels = availableModels.reduce((acc, model) => {
+        (acc[model.group] = acc[model.group] || []).push(model);
+        return acc;
+    }, {} as Record<string, typeof availableModels>);
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
@@ -52,15 +83,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSave, 
                             onChange={handleProviderChange}
                             className="w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none"
                         >
-                            <option value="Google">Google (پیش‌فرض)</option>
-                            <option value="AvalAI">AvalAI</option>
+                            <option value="AvalAI">AvalAI (پیش‌فرض)</option>
+                            <option value="Google">Google</option>
                             <option value="GapGPT">GapGPT</option>
                             <option value="TalkBot">TalkBot</option>
                         </select>
                         <p className="text-xs text-slate-500 mt-1">
                             { settings.provider === 'Google' && 'از کلید API گوگل جنریتیو AI شما استفاده می‌کند.'}
                             { settings.provider === 'AvalAI' && 'از اندپوینت سازگار با Gemini در AvalAI استفاده می‌کند.'}
-                            { settings.provider === 'GapGPT' && 'از اندپوینت سازگار با Gemini در GapGPT استفاده می‌کند.'}
+                            { settings.provider === 'GapGPT' && 'از اندپوینت سازگار با OpenAI در GapGPT استفاده می‌کند.'}
                             { settings.provider === 'TalkBot' && 'از اندپوینت سازگار با OpenAI در TalkBot استفاده می‌کند.'}
                         </p>
                     </div>
@@ -77,14 +108,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSave, 
                     </div>
                     <div>
                         <label htmlFor="model" className="block text-sm font-medium text-slate-300 mb-1">نام مدل</label>
-                        <input
-                            type="text"
+                        <select
                             id="model"
                             value={settings.model}
                             onChange={e => setSettings({ ...settings, model: e.target.value })}
-                            placeholder="مثال: gemini-2.5-flash"
                             className="w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                        />
+                        >
+                           {/* FIX: Replaced Object.entries with Object.keys to prevent type inference issues. */}
+                           {Object.keys(groupedModels).map((groupName) => (
+                                <optgroup label={groupName} key={groupName}>
+                                    {groupedModels[groupName].map(model => (
+                                        <option key={model.value} value={model.value}>{model.label}</option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                        </select>
                          <p className="text-xs text-slate-500 mt-1">مدلی را که ارائه‌دهنده انتخابی شما پشتیبانی می‌کند، مشخص کنید.</p>
                     </div>
                 </div>

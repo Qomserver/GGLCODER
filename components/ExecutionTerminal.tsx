@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { Chat } from '@google/genai';
+import { Chat } from '@google/genai';
 import { startExecutionChat, streamCodeExecution, ExecutionResponsePart } from '../services/geminiService';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
@@ -52,22 +52,27 @@ const ExecutionTerminal: React.FC<ExecutionTerminalProps> = ({ onClose }) => {
     const outputRef = useRef<HTMLDivElement>(null);
     const [apiSettings] = useLocalStorage<ApiSettings>('ai-codegen-settings', {
         provider: 'Google',
-        apiKey: process.env.API_KEY || '',
+        apiKey: (typeof process !== 'undefined' && process.env?.API_KEY) || '',
         model: 'gemini-2.5-flash',
     });
 
     useEffect(() => {
         if(apiSettings.apiKey){
             try {
-                chatSessionRef.current = startExecutionChat(apiSettings.apiKey);
-                setError(null);
+                // Only Google provider supports code execution tool
+                if (apiSettings.provider === 'Google') {
+                    chatSessionRef.current = startExecutionChat(apiSettings.apiKey);
+                    setError(null);
+                } else {
+                    setError("Code execution is only supported for the 'Google' provider. Please change it in settings.");
+                }
             } catch (e) {
-                setError("Failed to start execution session. Ensure API key is valid.");
+                setError("Failed to start execution session. Ensure the Google API key is valid.");
             }
         } else {
-            setError("API key for code execution is not set.");
+            setError("Google API key for code execution is not set in settings.");
         }
-    }, [apiSettings.apiKey]);
+    }, [apiSettings]);
     
     useEffect(() => {
         if(outputRef.current) {
@@ -96,8 +101,8 @@ const ExecutionTerminal: React.FC<ExecutionTerminalProps> = ({ onClose }) => {
                     return newHistory;
                 });
             }
-        } catch (error) {
-            const errorPart = { error: error instanceof Error ? error.message : "An unknown error occurred" };
+        } catch (e) {
+            const errorPart = { error: e instanceof Error ? e.message : "An unknown error occurred during execution." };
              setHistory(prev => {
                 const newHistory = [...prev];
                 const lastTurn = newHistory[newHistory.length - 1];
@@ -124,6 +129,7 @@ const ExecutionTerminal: React.FC<ExecutionTerminalProps> = ({ onClose }) => {
             </div>
             <div ref={outputRef} className="flex-grow p-4 overflow-y-auto font-mono text-sm text-slate-300 space-y-4">
                 {error && <p className="text-red-400">{error}</p>}
+                 {!error && history.length === 0 && <p className="text-slate-500">Welcome to the Execution Terminal. Ask the AI to run Python code. (e.g., "list files in current directory")</p>}
                 {history.map((turn, turnIndex) => (
                     <div key={turnIndex} className="border-b border-slate-700/50 pb-2 mb-2 last:border-b-0">
                         {turn.map((part, partIndex) => <TerminalOutput key={partIndex} part={part} />)}

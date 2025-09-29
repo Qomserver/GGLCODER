@@ -13,6 +13,7 @@ export interface StreamResponse {
   content?: string;
   isComplete?: boolean;
   error?: string;
+  suggestions?: string[];
 }
 
 export interface GenerationStats {
